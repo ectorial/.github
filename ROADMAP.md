@@ -144,8 +144,11 @@ The long-term goal is to make Tier 1 sufficient for everything. Tier 2 exists to
 
 ### WSR
 - [ ] Stable `wsr.toml` schema (semver-committed, no breaking changes without a major)
-- [ ] Cloud runner mode — `wsr` submits jobs to ectorial's hosted infrastructure as a drop-in GitHub Actions runner replacement
-- [ ] Distributed job graph execution (parallel jobs across machines)
+- [ ] **Infra-agnostic runner mode** — because WSR components are just Wasm, they can execute on any Wasm-capable compute. Target platforms:
+  - **Cloudflare Workers / workerd** — Wasm runs natively; WSR jobs become Workers invocations with zero container overhead and global edge distribution
+  - **Custom GitHub Actions runner** — implement the GitHub Actions runner protocol so `wsr` registers as a self-hosted runner, making any Wasm-capable machine a drop-in replacement for GitHub's hosted runners without changing a single workflow file
+  - **Any OCI/Wasm-capable host** — the runner interface is a thin adapter; porting to new infra means writing a new adapter, not rewriting the engine
+- [ ] Distributed job graph execution (parallel jobs across machines, infra-agnostic)
 - [ ] `wsr.toml` → `.github/workflows/` export — for teams that still need to run on GitHub's cloud
 
 ### Ecosystem
