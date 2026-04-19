@@ -99,6 +99,33 @@ content = """
 .DS_Store
 """
 
+[[commands.steps]]
+op = "ensure_file"
+repo = "wsr"
+path = ".github/workflows/ci.yml"
+content = """
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo check --all-targets --all-features
+      - run: cargo test --all-features
+"""
+
 # ===========================================================================
 # ectorial/wit — shared ABI contract
 # ===========================================================================
@@ -149,6 +176,41 @@ repo = "wit"
 path = "wit/.gitkeep"
 content = ""
 
+[[commands.steps]]
+op = "ensure_file"
+repo = "wit"
+path = ".github/workflows/ci.yml"
+content = """
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  wit-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install wasm-tools
+        uses: bytecodealliance/actions/wasm-tools/setup@v1
+      - name: Validate every .wit file
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          files=(wit/**/*.wit)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo 'No .wit files yet — skipping'
+            exit 0
+          fi
+          for f in "${files[@]}"; do
+            echo "::group::$f"
+            wasm-tools component wit "$f"
+            echo "::endgroup::"
+          done
+"""
+
 # ===========================================================================
 # ectorial/actions — actions catalog umbrella
 # ===========================================================================
@@ -188,6 +250,34 @@ See the org [ROADMAP](https://github.com/ectorial/.github/blob/main/ROADMAP.md)
 for the v0.2+ roadmap (setup-python, cache, artifacts, …).
 """
 
+[[commands.steps]]
+op = "ensure_file"
+repo = "actions"
+path = ".github/workflows/ci.yml"
+content = """
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: '**/*.md'
+      - name: Link check
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: --no-progress --verbose './**/*.md'
+          fail: true
+"""
+
 # ===========================================================================
 # ectorial/checkout — Tier 1 action (v0.1)
 # ===========================================================================
@@ -222,6 +312,36 @@ uses = "ectorial/checkout@v0"
 ```
 
 Status: **scaffold** — implementation tracked in v0.1 of the org roadmap.
+"""
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "checkout"
+path = ".github/workflows/ci.yml"
+content = """
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-component
+        run: cargo install cargo-component --locked
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo component build --release
+      - run: cargo component test
 """
 
 # ===========================================================================
@@ -260,6 +380,36 @@ with = { node-version = "20" }
 Status: **scaffold** — implementation tracked in v0.1 of the org roadmap.
 """
 
+[[commands.steps]]
+op = "ensure_file"
+repo = "setup-node"
+path = ".github/workflows/ci.yml"
+content = """
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-component
+        run: cargo install cargo-component --locked
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo component build --release
+      - run: cargo component test
+"""
+
 # ===========================================================================
 # ectorial/registry — internal component registry (read-only, v0.1)
 # ===========================================================================
@@ -292,6 +442,33 @@ Wasm components.
 - **v0.4** — signature verification at resolution time; `wsr login`.
 
 See [ARCHITECTURE.md](https://github.com/ectorial/.github/blob/main/ARCHITECTURE.md#component-lifecycle).
+"""
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "registry"
+path = ".github/workflows/ci.yml"
+content = """
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo check --all-targets --all-features
+      - run: cargo test --all-features
 """
 
 # ===========================================================================
@@ -333,6 +510,34 @@ op = "ensure_file"
 repo = "docs"
 path = "content/.gitkeep"
 content = ""
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "docs"
+path = ".github/workflows/ci.yml"
+content = """
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: '**/*.md'
+      - name: Link check
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: --no-progress --verbose './**/*.md'
+          fail: true
+"""
 
 # ===========================================================================
 # Shared labels (applied to every v0.1 repo)
