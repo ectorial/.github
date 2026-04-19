@@ -20,6 +20,8 @@ Built on Rust, powered by WebAssembly (WASI Preview 3) and the Wasm Component Mo
 
 `wsr` is a ridiculously fast, Rust-based CI/CD orchestrator that runs your pipelines as **Wasm components** — not containers, not VMs. Think of it as what [`uv`](https://github.com/astral-sh/uv) did for Python packaging, applied to the entire CI/CD stack.
 
+> **Docker virtualizes the computer. WSR virtualizes the task.**
+
 ```bash
 # Install the runner
 curl -fsSL https://ectorial.dev/install.sh | sh
@@ -30,6 +32,8 @@ wsr run wsr.toml
 # Or run your existing GitHub Actions — locally, in milliseconds
 wsr actions run
 ```
+
+`wsr` automatically selects the right execution engine for each job — you never configure it manually.
 
 ---
 
@@ -47,50 +51,91 @@ Modern CI/CD is stuck in the 2015 container era:
 
 ## ✨ The ectorial Solution
 
+The core insight: **OS-level virtualization is the wrong abstraction for CI tasks.** Docker virtualizes the entire machine so one process can run. WSR moves down a level — to **instruction-level virtualization** via WebAssembly — so the task itself becomes the isolation unit. No daemon. No image pull. No boot sequence.
+
 ```
-┌──────────────────────────────────────────────────────────┐
-│  wsr  →  Wasmtime Isolate  →  Signed Wasm Component      │
-│         ≈ 1–3 ms cold start       pre-compiled, cached   │
-└──────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  wsr  →  Engine Selector  →  Wasm Isolate  →  Signed Component  │
+│          (auto-detected)      ≈ 1–3 ms cold start (Tier 1)      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-- ⚡ **1–3 ms cold starts** via Wasmtime isolates — no container runtime, no daemon.
+- ⚡ **Sub-millisecond to low-millisecond cold starts** — no container runtime, no daemon.
 - 🏠 **True local-first.** `wsr actions run` executes your real workflow on your laptop with full fidelity.
-- 🔐 **Sandboxed by default.** WASI capability-based security — components can only touch what you grant.
+- 🔐 **Sandboxed by default.** WASI capability-based security — components only touch what you explicitly grant.
 - 🧩 **Polyglot.** Write components in Rust, Go, Python, C/C++, or JS. They all compile to the same Wasm ABI.
 - 🌊 **Natively async** on WASIp3 — real concurrency, no blocking-thread-per-step nonsense.
+- 🐳 **Zero Docker.** Not "less Docker" — even heavy toolchains like `rustc` run sandboxed inside Wasm, not containers.
 
 ---
 
-## 🧠 Core Philosophy — The Dual Engine
+## 🧠 Core Architecture — The Tiered Execution Engine
 
-`wsr` ships with **two engines** under one CLI:
+`wsr` automatically selects the best execution engine for each job based on what the job requires. Both runtimes expose a unified interface back to the orchestrator — **jobs communicate across tiers transparently**, with no special wiring needed.
 
-### 1. 🦀 The Native Engine — `wsr run wsr.toml`
+The promotion rule is simple: if any step in a job requires capabilities beyond strict WASI, the **entire job** is promoted to the appropriate tier. You never configure this manually.
 
-A first-class, local-first workflow format designed around Wasm components from day one. Declarative, async, typed via [WIT](https://component-model.bytecodealliance.org/design/wit.html) interfaces.
+---
 
-```toml
-# wsr.toml
-[workflow.ci]
-on = ["push", "pull_request"]
+### Tier 1 — The Vault 🔒 &nbsp;(Wasmtime + WASI Preview 3)
 
-[[workflow.ci.steps]]
-uses = "ectorial/checkout"
+**The default. Every job that can run here, does.**
 
-[[workflow.ci.steps]]
-uses = "ectorial/setup-node"
-with = { version = "22" }
+This tier uses [Wasmtime](https://wasmtime.dev/) — the reference WASI runtime from the Bytecode Alliance — and runs natively-built [`ectorial/actions`](https://github.com/ectorial) as signed Wasm Components with typed [WIT](https://component-model.bytecodealliance.org/design/wit.html) interfaces.
 
-[[workflow.ci.steps]]
-run = "npm test"
+| Property | Value |
+| --- | --- |
+| Cold start | **~1–3 ms** |
+| Security model | WASI capability-based (strict) |
+| Component format | Wasm Component Model |
+| Target actions | `ectorial/*` native catalog |
+
+**Philosophy: Strict security and speed.** Strict WASI means strict sandboxing — no ambient authority, no implicit syscalls, no surprises. The capability model is enforced at the ABI boundary. Components can only touch what you explicitly grant.
+
+This is the long-term standardization target for the entire ecosystem. Every action in the `ectorial/actions` catalog runs here, and the catalog grows to eventually make every other tier unnecessary.
+
+---
+
+### Tier 2 — The Workshop 🔧 &nbsp;(Wasmer + WASIX)
+
+**The compatibility hotfix layer. Used when Tier 1 isn't enough yet.**
+
+When `wsr` detects that a job requires features that strict WASI doesn't yet support — process spawning (`fork`/`exec`), POSIX threads, full networking — it automatically promotes the job to [Wasmer](https://wasmer.io/) with the [WASIX](https://wasix.org/) extension set. WASIX virtualizes a POSIX-compatible OS surface *inside* the Wasm sandbox, without breaking out to a real container or VM.
+
+| Property | Value |
+| --- | --- |
+| Cold start | **Low ms to tens of ms** (toolchain-dependent) |
+| Security model | WASIX sandbox (POSIX-compatible, no host OS escape) |
+| Component format | Plain Wasm modules |
+| Target actions | Heavy toolchains (`rustc`, LLVM), complex binaries, GHA Marketplace actions without a Tier 1 equivalent |
+
+**Philosophy: Pragmatic portability.** This tier exists because the WASI ecosystem is still maturing — not because containers are acceptable. WASIX lets us run `rustc` via LLVM, existing GitHub Marketplace actions, and other complex binaries without requiring users to rewrite their entire pipeline from scratch. It eliminates Docker even where Tier 1 can't reach yet.
+
+> **WASIX is explicitly transitional.** As `ectorial/actions` grows and WASI Preview 3 matures, Tier 2 coverage shrinks. The goal is to make Tier 1 sufficient for everything. We maintain Tier 2 as long as it keeps you off Docker — not a day longer.
+
+---
+
+### Tier 3 — The Bridge 🌉 &nbsp;(GHA-Compatible Polyfill)
+
+**Drop-in compatibility for your existing `.github/workflows/*.yml` files.**
+
+This isn't a separate runtime — it's the resolver layer. When `wsr` runs a standard GitHub Actions workflow, it maps each `uses:` reference through the Component Resolver. Steps with a native `ectorial/*` equivalent run on Tier 1. Steps that need WASIX features run on Tier 2. Your YAML is untouched; the tier selection is silent.
+
+```
+wsr actions run ci.yml
+         │
+         ▼
+┌──────────────────────────────────────────────────────┐
+│                  Component Resolver                  │
+│                                                      │
+│  actions/checkout@v4    ──▶  ectorial/checkout       │  Tier 1 · ~2ms
+│  actions/setup-node@v4  ──▶  ectorial/setup-node     │  Tier 1 · ~3ms
+│  actions/setup-rust@v1  ──▶  ectorial/setup-rust     │  Tier 2 · WASIX
+│  (no equivalent yet)    ──▶  ⚠  advisory warning     │
+└──────────────────────────────────────────────────────┘
 ```
 
-### 2. 🐙 The Drop-In Replacement — `wsr actions run`
-
-Point it at any existing `.github/workflows/*.yml` file and it Just Works™. `wsr` parses the standard GitHub Actions schema and **transparently aliases** each `uses:` step to an equivalent pre-compiled Wasm component from this org.
-
-No migration. No rewrite. Your existing pipeline — **100× faster, locally**.
+No migration. No rewrite. Your existing pipeline — faster, locally, without Docker.
 
 ---
 
@@ -120,11 +165,11 @@ When `wsr` sees a standard action reference, it resolves it against the `ectoria
                               │  Component Resolver   │
                               └───────────┬───────────┘
                                           ▼
-          ┌───────────────────────────────────────────┐
-          │   ectorial/checkout      (Rust → Wasm)    │  2ms
-          │   ectorial/setup-node    (Rust → Wasm)    │  3ms
-          │   ectorial/cache         (Rust → Wasm)    │  1ms
-          └───────────────────────────────────────────┘
+          ┌───────────────────────────────────────────────────┐
+          │   ectorial/checkout    (Rust → Wasm)  2ms · Tier 1│
+          │   ectorial/setup-node  (Rust → Wasm)  3ms · Tier 1│
+          │   ectorial/cache       (Rust → Wasm)  1ms · Tier 1│
+          └───────────────────────────────────────────────────┘
                  same inputs • same outputs • 100× faster
 ```
 
