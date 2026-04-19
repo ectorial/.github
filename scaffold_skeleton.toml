@@ -1,0 +1,371 @@
+# scaffold_skeleton.toml
+#
+# Ectorial org scaffolding plan for v0.1 (Execution Core).
+#
+# Driven by scripts/scaffold_skeleton.py. Run with:
+#
+#     uv run scripts/scaffold_skeleton.py --dry-run
+#     uv run scripts/scaffold_skeleton.py
+#
+# Each [[commands]] entry is one logical unit of work (usually: "bring one
+# repo up to its v0.1 baseline"). Each [[commands.steps]] is a single
+# idempotent operation. Re-running is safe — existing repos and files are
+# skipped unless overwrite=true is set.
+#
+# See ROADMAP.md § v0.1 and ARCHITECTURE.md for why each repo exists.
+
+[defaults]
+owner = "ectorial"
+default_branch = "main"
+
+# ===========================================================================
+# ectorial/wsr — the core execution engine
+# ===========================================================================
+
+[[commands]]
+name = "wsr"
+summary = "Bootstrap ectorial/wsr — the Wasm CI runtime (v0.1 core)"
+
+[[commands.steps]]
+op = "ensure_repo"
+repo = "wsr"
+description = "WSR — the Wasm component CI runtime. Ship less Docker with every release."
+private = false
+topics = ["wasm", "ci", "cd", "wasi", "component-model", "wasmtime", "rust"]
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "wsr"
+path = "README.md"
+content = """
+# wsr
+
+**WSR** is the Wasm component CI runtime — the core engine of the
+[ectorial](https://github.com/ectorial) ecosystem.
+
+> Docker virtualizes the computer. WSR virtualizes the task.
+
+Status: **v0.1 — Public Alpha** (see [ROADMAP](https://github.com/ectorial/.github/blob/main/ROADMAP.md)).
+
+## What it does
+
+- Parses `wsr.toml` and `.github/workflows/*.yml` workflow definitions.
+- Resolves action references to signed Wasm components (Tier 1).
+- Runs jobs through Wasmtime (WASI Preview 2/3 components) — no Docker.
+- Manages WASI capability grants (filesystem, env, secrets).
+
+## Quick start
+
+```sh
+wsr run wsr.toml
+```
+
+See `ARCHITECTURE.md` for internal design.
+"""
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "wsr"
+path = "ARCHITECTURE.md"
+content = """
+# wsr — Internal Architecture
+
+This document covers the **internal** architecture of `wsr`. For the
+ecosystem-level view, see
+[ectorial/.github/ARCHITECTURE.md](https://github.com/ectorial/.github/blob/main/ARCHITECTURE.md).
+
+## Subsystems
+
+- **Workflow Parser** — `wsr.toml` and `.github/workflows/*.yml` ingest.
+- **Component Resolver** — `uses:` → Wasm component digest.
+- **Tier Selector** — Tier 1 (Wasmtime) vs Tier 2 (Wasmer + WASIX).
+- **Capability Broker** — WASI capability grants per job.
+- **Job Graph Orchestrator** — sequential today; parallel in v0.1's last
+  milestone; distributed in v1.0.
+
+TODO: flesh out each subsection as v0.1 lands.
+"""
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "wsr"
+path = ".gitignore"
+content = """
+/target
+**/*.rs.bk
+*.wasm
+*.wat
+.env
+.DS_Store
+"""
+
+# ===========================================================================
+# ectorial/wit — shared ABI contract
+# ===========================================================================
+
+[[commands]]
+name = "wit"
+summary = "Bootstrap ectorial/wit — shared WIT interface definitions"
+
+[[commands.steps]]
+op = "ensure_repo"
+repo = "wit"
+description = "Shared WIT interfaces. The ABI contract between wsr and every ectorial action."
+private = false
+topics = ["wit", "wasi", "component-model", "abi"]
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "wit"
+path = "README.md"
+content = """
+# wit
+
+**Single source of truth** for the WIT interfaces used across the ectorial
+ecosystem.
+
+Every `ectorial/actions/*` component is typed against an interface defined
+in this repo. `wsr` provides host implementations for each interface.
+
+## v0.1 scope
+
+- `checkout` input/output interface
+- `setup-*` pattern interface
+- filesystem + environment host interfaces (provided by `wsr`)
+
+## Stability
+
+> Changing a WIT interface is a breaking change. Follow semver; add
+> deprecation cycles before removal.
+
+See `ARCHITECTURE.md` in this repo and
+[ectorial/.github/ARCHITECTURE.md](https://github.com/ectorial/.github/blob/main/ARCHITECTURE.md)
+for the ecosystem map.
+"""
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "wit"
+path = "wit/.gitkeep"
+content = ""
+
+# ===========================================================================
+# ectorial/actions — actions catalog umbrella
+# ===========================================================================
+
+[[commands]]
+name = "actions"
+summary = "Bootstrap ectorial/actions — catalog umbrella / registry of first-party actions"
+
+[[commands.steps]]
+op = "ensure_repo"
+repo = "actions"
+description = "Index of first-party ectorial/* Wasm component actions. Tier 1 catalog."
+private = false
+topics = ["ectorial", "actions", "wasm", "catalog"]
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "actions"
+path = "README.md"
+content = """
+# ectorial/actions
+
+Catalog of first-party Wasm component actions shipped by ectorial.
+
+Each action lives in its own repository (`ectorial/checkout`,
+`ectorial/setup-node`, …) and is published as a signed Wasm Component
+targeting **Tier 1** (Wasmtime + WASI Preview 3).
+
+## v0.1 catalog
+
+| Action | Repo | Tier | Status |
+| --- | --- | --- | --- |
+| `checkout` | [ectorial/checkout](https://github.com/ectorial/checkout) | 1 | scaffold |
+| `setup-node` | [ectorial/setup-node](https://github.com/ectorial/setup-node) | 1 | scaffold |
+
+See the org [ROADMAP](https://github.com/ectorial/.github/blob/main/ROADMAP.md)
+for the v0.2+ roadmap (setup-python, cache, artifacts, …).
+"""
+
+# ===========================================================================
+# ectorial/checkout — Tier 1 action (v0.1)
+# ===========================================================================
+
+[[commands]]
+name = "checkout"
+summary = "Bootstrap ectorial/checkout — Tier 1 source checkout action"
+
+[[commands.steps]]
+op = "ensure_repo"
+repo = "checkout"
+description = "ectorial/checkout — Tier 1 source checkout action (Wasm component, WASI Preview 3)."
+private = false
+topics = ["ectorial", "action", "wasm", "tier-1", "checkout"]
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "checkout"
+path = "README.md"
+content = """
+# ectorial/checkout
+
+Tier 1 source-checkout action for WSR workflows. Implements the `checkout`
+WIT interface defined in [ectorial/wit](https://github.com/ectorial/wit).
+
+## Usage
+
+```toml
+# wsr.toml
+[[jobs.build.steps]]
+uses = "ectorial/checkout@v0"
+```
+
+Status: **scaffold** — implementation tracked in v0.1 of the org roadmap.
+"""
+
+# ===========================================================================
+# ectorial/setup-node — Tier 1 action (v0.1)
+# ===========================================================================
+
+[[commands]]
+name = "setup-node"
+summary = "Bootstrap ectorial/setup-node — Tier 1 Node toolchain action"
+
+[[commands.steps]]
+op = "ensure_repo"
+repo = "setup-node"
+description = "ectorial/setup-node — Tier 1 Node.js toolchain provisioning (Wasm component)."
+private = false
+topics = ["ectorial", "action", "wasm", "tier-1", "node"]
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "setup-node"
+path = "README.md"
+content = """
+# ectorial/setup-node
+
+Tier 1 Node.js toolchain action for WSR workflows. Implements the `setup-*`
+pattern from [ectorial/wit](https://github.com/ectorial/wit).
+
+## Usage
+
+```toml
+[[jobs.build.steps]]
+uses = "ectorial/setup-node@v0"
+with = { node-version = "20" }
+```
+
+Status: **scaffold** — implementation tracked in v0.1 of the org roadmap.
+"""
+
+# ===========================================================================
+# ectorial/registry — internal component registry (read-only, v0.1)
+# ===========================================================================
+
+[[commands]]
+name = "registry"
+summary = "Bootstrap ectorial/registry — internal component registry used by wsr (read-only in v0.1)"
+
+[[commands.steps]]
+op = "ensure_repo"
+repo = "registry"
+description = "Internal component registry. Read-only in v0.1; signed+authenticated in v0.4."
+private = false
+topics = ["ectorial", "registry", "wasm", "components"]
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "registry"
+path = "README.md"
+content = """
+# ectorial/registry
+
+Component registry used by `wsr` to resolve `uses:` references to signed
+Wasm components.
+
+## Milestones
+
+- **v0.1** — internal, read-only; hosts the first-party catalog.
+- **v0.2** — public read; `wsr publish` for community authors.
+- **v0.4** — signature verification at resolution time; `wsr login`.
+
+See [ARCHITECTURE.md](https://github.com/ectorial/.github/blob/main/ARCHITECTURE.md#component-lifecycle).
+"""
+
+# ===========================================================================
+# ectorial/docs — docs / authoring guide
+# ===========================================================================
+
+[[commands]]
+name = "docs"
+summary = "Bootstrap ectorial/docs — component authoring and operator guide"
+
+[[commands.steps]]
+op = "ensure_repo"
+repo = "docs"
+description = "Authoritative guide for component authors, operators, and contributors."
+private = false
+topics = ["ectorial", "docs"]
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "docs"
+path = "README.md"
+content = """
+# ectorial/docs
+
+Authoritative guide for the ectorial ecosystem.
+
+Scope:
+- Component authoring lifecycle (WIT → build → sign → publish).
+- Capability model and WASI grants.
+- Registry workflow (`wsr login`, `wsr publish`).
+- Tier 2 (WASIX) authoring guide and ceiling documentation.
+- Operator guide for self-hosted `wsr` runners (v1.0).
+
+Start here: `content/index.md` (to be filled in as v0.1 solidifies).
+"""
+
+[[commands.steps]]
+op = "ensure_file"
+repo = "docs"
+path = "content/.gitkeep"
+content = ""
+
+# ===========================================================================
+# Shared labels (applied to every v0.1 repo)
+# ===========================================================================
+
+[[commands]]
+name = "labels"
+summary = "Apply a shared label taxonomy to v0.1 repos"
+
+[[commands.steps]]
+op = "ensure_label"
+repo = "wsr"
+name = "tier-1"
+color = "0e8a16"
+description = "Work involving the Tier 1 (Wasmtime) runtime"
+
+[[commands.steps]]
+op = "ensure_label"
+repo = "wsr"
+name = "tier-2"
+color = "fbca04"
+description = "Work involving the Tier 2 (Wasmer + WASIX) runtime"
+
+[[commands.steps]]
+op = "ensure_label"
+repo = "wsr"
+name = "capability-gate"
+color = "5319e7"
+description = "Blocks a roadmap capability gate (see ROADMAP.md)"
+
+[[commands.steps]]
+op = "ensure_label"
+repo = "wit"
+name = "breaking-change"
+color = "b60205"
+description = "Modifies a WIT interface — semver-breaking"
