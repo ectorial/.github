@@ -1,59 +1,26 @@
-# GitHub Copilot Instructions
+# Repository instructions
 
-## Project Overview
-This is an automated GitHub profile README updater for the gh-auto organization. It fetches and displays popular GitHub Actions based on stars and usage.
+## Ownership
 
-## Key Components
+This is `ectorial/.github`: organization profile, governance, and documentation summaries.
+The core product and technical specification live in `ectorial/wsr`. The Node code in `src/`
+is legacy profile maintenance, not the future CI engine or GitHub App.
 
-### 1. Main Script (src/index.js)
-- Fetches GitHub Actions repositories using the GitHub API
-- Filters repositories to ensure they contain action.yml
-- Updates README.md from README.md.tpl template
-- Uses environment variables for authentication
+## Documentation
 
-### 2. Constants (src/constants.js)
-- Defines placeholder strings for template replacement
-- Current placeholders:
-  - %{{TOP_ACTIONS_STAR}} - Most starred actions
-  - %{{TOP_ACTIONS_USED}} - Most used actions
+Use WSR `PLAN.md` for accepted decisions and open proposals, `CHECKLIST.md` for implementation
+status, and `ROADMAP.md` for delivery gates. Current WSR is a scaffold; prototype implementation
+is preserved locally and must not be described as available functionality.
 
-### 3. GitHub Workflow (.github/workflows/main.yml)
-- Runs every 5 minutes or manually
-- Updates the profile README with latest stats
-- Commits changes automatically
+Keep `profile/README.md` and `profile/README.md.tpl` byte-identical. Separate current scaffold,
+preserved prototype, accepted design (planned), and open proposals. Do not introduce independent
+runtime/version commitments, complete compatibility claims, or unmeasured performance guarantees.
 
-## Development Guidelines
+The retained repositories are `.github` and `wsr`. `actions`, `.github-private`, and `demo-repository`
+were deleted on October 7, 2026. Files under `docs/archive/` are historical references, not current instructions.
 
-1. **API Interaction**
-- Always include proper authentication headers
-- Handle rate limiting appropriately
-- Use proper error handling for API calls
+## Legacy automation
 
-2. **File Operations**
-- Use async/await for file operations
-- Maintain template structure in README.md.tpl
-- Preserve existing markdown formatting
-
-3. **Code Style**
-- Use ES modules
-- Follow async/await patterns
-- Implement proper error handling
-- Use environment variables for sensitive data
-
-4. **Documentation**
-- Document new placeholders in constants.js
-- Update README.md.tpl for new sections
-- Follow existing markdown structure
-
-## Security Considerations
-- Never expose GitHub tokens
-- Validate API responses
-- Use proper permission scopes
-- Handle errors securely
-
-## Testing
-Focus on:
-- API response handling
-- File operation error cases
-- Template replacement accuracy
-- GitHub workflow functionality
+Keep source changes focused and preserve existing behavior unless the task requests a change.
+Never expose authentication tokens. Profile template generation requires separate review before
+reactivation; documentation reconciliation does not authorize external writes or workflow enablement.
