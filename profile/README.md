@@ -1,6 +1,6 @@
 # ectorial
 
-Pre-alpha tooling for running and debugging CI locally, then reusing the engine inside GitHub Actions.
+Pre-alpha tooling for independent local CI with verified on-demand tools and optional GitHub reporting.
 
 ## Current status
 
@@ -12,15 +12,17 @@ and is not a supported release.
 ## Accepted direction — planned
 
 - A documented GitHub Actions compatibility subset with explicit diagnostics.
+- Bun for compatible GHA JavaScript actions inside system isolation; the provider-neutral core remains.
 - The Component Model as a core deny-by-default security boundary.
 - An isolated system backend for existing tools; reject execution when restrictions cannot be enforced.
 - Linux jobs from macOS and Linux machines first; native macOS/Windows jobs later.
 - Containment of malicious workloads on a single-user machine.
 - Explicit owner-authorized broad runner access for compatibility, with scope/syntax still open.
-- Local CI first, reuse inside GitHub Actions next, and possible independent CI later.
+- Independent local execution with verified cached inputs and approved on-demand acquisition.
+- Separate provisioning, scheduling/dispatch, enforcement, observability and optional evidence reporting.
 
-Concrete runtimes, outer isolation, CPU architectures, initial compatibility coverage, and the
-Actions wrapper contract remain open. No supported execution quick start, native action catalog,
+The component runtime, Bun version/provisioning, outer isolation, CPU architectures, compatibility
+coverage, and the Actions wrapper contract remain open. No supported execution quick start, native action catalog,
 component registry, complete compatibility guarantee, or measured performance claim is available.
 
 ## Repositories and documentation

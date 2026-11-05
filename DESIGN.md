@@ -6,8 +6,8 @@ technical specification. [WSR PLAN.md](https://github.com/ectorial/wsr/blob/main
 ## Accepted direction — planned
 
 1. Run and debug a documented subset of GitHub Actions workflows locally.
-2. Reuse the same engine inside GitHub Actions.
-3. Consider independent CI later, retaining GitHub integration where useful.
+2. Provision verified tools on demand and reuse pinned cached inputs without GitHub scheduling.
+3. Add optional hosted reuse, evidence/signing and GitHub reporting through separate contracts.
 
 Provider components compile source into a canonical workflow model with compatibility diagnostics.
 The execution core handles planning/evaluation and job supervision without runtime provider callbacks.
@@ -19,10 +19,15 @@ The first release targets Linux jobs from macOS and Linux development machines. 
 malicious. Owner/admin policy authorizes capabilities; workflows cannot authorize themselves.
 A broad runner-access profile/wildcard is explicitly opt-in and never an automatic permission fallback.
 
+Bun is the intended runtime for compatible GHA JavaScript actions inside system isolation; this is
+a planned compatibility path, not implemented support or a new security boundary. The provider
+adapter and provider-neutral core remain. [The GHA crate design](https://github.com/ectorial/wsr/tree/main/crates/wsr-gha)
+owns compatibility details and validation gaps under WSR decision D-024.
+
 ## Open choices
 
-Wildcard scope/syntax/granularity, VM-versus-container outer isolation on Linux, concrete runtimes/WASI,
-CPU architectures, images, shared-state contracts, initial GHA coverage, and the Actions wrapper contract
+Wildcard scope/syntax/granularity, VM-versus-container outer isolation on Linux, component runtime/WASI,
+Bun version/provisioning, CPU architectures, images, shared-state contracts, initial GHA coverage, and the Actions wrapper contract
 remain unresolved. Managed-runner-only wildcard scope and a VM boundary on developer machines are
 proposals, not accepted requirements. Broad grants do not establish full workflow compatibility.
 
@@ -35,4 +40,5 @@ See [WSR architecture](https://github.com/ectorial/wsr/blob/main/ARCHITECTURE.md
 [delivery gates](https://github.com/ectorial/wsr/blob/main/ROADMAP.md).
 
 The [older unpublished design](docs/archive/2026-06/DESIGN.md) is preserved as historical context.
-Its independent-CI-first sequence and fixed technology assumptions do not override the current decisions.
+Its fixed technology assumptions do not override current decisions. Independent local execution
+is distinct from later remote CI hosting.
