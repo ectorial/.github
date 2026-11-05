@@ -17,6 +17,7 @@ on October 7, 2026. A future catalog or service is not an existing repository de
 
 - [WSR PLAN.md](https://github.com/ectorial/wsr/blob/main/PLAN.md): accepted decisions and open proposals.
 - [WSR ARCHITECTURE.md](https://github.com/ectorial/wsr/blob/main/ARCHITECTURE.md): current scaffold and target boundaries.
+- [WSR GHA design](https://github.com/ectorial/wsr/tree/main/crates/wsr-gha): planned Bun compatibility, state, and validation.
 - [WSR CHECKLIST.md](https://github.com/ectorial/wsr/blob/main/CHECKLIST.md): implementation status.
 - [WSR ROADMAP.md](https://github.com/ectorial/wsr/blob/main/ROADMAP.md): delivery gates.
 - [DESIGN.md](DESIGN.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [ROADMAP.md](ROADMAP.md): organization summaries.

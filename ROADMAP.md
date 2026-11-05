@@ -15,9 +15,10 @@ The organization profile/template summarize the same product direction and imple
 - Specify and test compatibility inspection/planning without executing workload code.
 - Prove component capability enforcement and isolated Linux system execution.
 - Deliver useful local execution with explicit state, permissions, and results.
-- Reuse the same engine inside GitHub Actions after defining its wrapper contract.
+- Prove cached independent local execution, on-demand provisioning and device-wide job admission.
+- Add optional evidence publication and hosted reuse after defining their trust/wrapper contracts.
 
-Independent CI, catalogs, more providers, remote cache, and native macOS/Windows jobs are later
+Remote CI hosting, more providers, remote cache, and native macOS/Windows jobs are later
 possibilities. No action components, registry, or measured startup/compatibility guarantee is available.
 
 Repository removals are complete: `actions`, `.github-private`, and `demo-repository` were deleted
